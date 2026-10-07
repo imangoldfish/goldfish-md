@@ -86,6 +86,10 @@ python3 -m unittest discover -s app/tests -t .
 
 The tests boot the real HTTP server on an ephemeral port against a throwaway temp folder, so your `notes/` are never touched. Standard library only.
 
+## Releasing
+
+Versions follow semantic versioning (a small feature bumps the minor number, e.g. `1.1.0`). See [`RELEASING.md`](RELEASING.md) for the full commit → tag → push → release checklist.
+
 ## How it stays safe
 
 - **Local only** — binds to `127.0.0.1` by default.
