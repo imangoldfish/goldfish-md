@@ -48,8 +48,26 @@ Append-only. Newest entry at the top.
 Format:
 #### <date> — <role / what this session was for>
 What happened · decisions + why · unfinished work · concrete next step.
-Keep it to a few lines.
+End with the exact command(s) that verify the claims. Keep it to a few lines.
 ```
+
+#### 2026-10-07 — applied the improvement brief to the kit
+- Implemented the review's 6 changes in `opencode-memory-kit`:
+  verify-before-claiming (grep docs when closing a "Next up" item),
+  rebase-before-write (fetch + re-read before appending), "no code changes
+  this session" fallback entries, verify-command lines in the Format block,
+  compaction to `tracker/archive/STATE-YYYY.md`, privacy rules with untracked
+  `tracker/.scratch.md`.
+- Global `~/.config/opencode/AGENTS.md` wording is now identical to
+  `AGENTS.section.md`; `scaffold.sh` also emits `tracker/.gitignore`.
+- Only this project's Format block changed — no existing entries touched.
+- One hiccup: a permission prompt timed out mid-edit (user was away), so the
+  kit write was interrupted and had to be redone; the global hook had already
+  updated, causing a transient section-vs-global mismatch. Lesson: do
+  section + global writes sequentially, or check both after.
+- Verify: `git -C opencode-memory-kit diff HEAD --stat` ·
+  `~/.config/opencode/memory-template/scaffold.sh` in a temp dir ·
+  global/section `diff`.
 
 #### 2026-10-07 — review tracker system + handoff brief
 - Reviewed the cross-session tracker system based on firsthand use (found
