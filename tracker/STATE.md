@@ -19,13 +19,14 @@ yours — portable, greppable, editable in any other tool.
   preview, create/rename/delete, search, polish (shortcuts + autosave), and
   v1.2's import (drag-drop + button), preview syntax highlighting
   (`highlight.js`), collapsible sidebar, `welcome.md` walkthrough.
-- `v1.1.0` tagged and pushed (autosave + `RELEASING.md`). Remote:
-  `github.com/imangoldfish/goldfish-md`. v1.2 changes sit in commit `4aa820f`
-  (not yet tagged).
+- `v1.1.0` and `v1.2.0` tagged and pushed (autosave + `RELEASING.md`; then
+  import, preview highlighting, collapsible sidebar, theme toggle,
+  `welcome.md` walkthrough). v1.2.0 = commit `8acbc14`. Remote:
+  `github.com/imangoldfish/goldfish-md`.
 - `README.md`, `PLAN.md`, `RELEASING.md` are current; agent definitions
   describe the Python stdlib backend accurately.
 - Test suite covers the file API, traversal/symlink rejection, and edge
-  cases (41 tests). Run it from the repo root:
+  cases (42 tests). Run it from the repo root:
 
   ```sh
   python3 -m unittest discover -s app/tests -t .
@@ -58,6 +59,17 @@ Format:
 What happened · decisions + why · unfinished work · concrete next step.
 End with the exact command(s) that verify the claims. Keep it to a few lines.
 ```
+
+#### 2026-10-07 — retract the v1.2.1 hold (v1.2.0 already shipped those fixes)
+- The other agent released **v1.2.0** (tag → commit `8acbc14`; history includes
+  `4aa820f`, `eda28c4`, `129487f`), so the autosave-resurrection guard, rename
+  guard, and NUL 400 are already inside v1.2.0 — my "hold for v1.2.1" plan was
+  moot and a v1.2.1 tag would be an empty no-op.
+- Fixed my stale claims: corrected the hold wording in my validation-pass entry
+  and the "not yet tagged" line in Current state; suite count now 42.
+- **v1.2.1 is reserved for NEW fixes**; nothing to tag now.
+- Verify: `git tag` (v1.1.0 v1.2.0) · `git merge-base --is-ancestor v1.2.0 HEAD`
+  (yes) · `python3 -m unittest discover -s app/tests -t .` (42 OK).
 
 #### 2026-10-07 — release v1.2.0 (theme toggle + review fixes)
 - User asked for a theme toggle on top of the 1.2 build: toolbar ☀️/🌙/🖥️
@@ -113,8 +125,10 @@ End with the exact command(s) that verify the claims. Keep it to a few lines.
 - Surprise found mid-session: a concurrent session committed `4aa820f`
   ("1.2: import, highlight, collapsible sidebar, welcome.md") and its
   `git add -A` swept my then-uncommitted fixes into it. Verified the final
-  tree is correct and pushed. No tag now: the human said another agent owns
-  v1.2.0 (tag/release); these fixes are held to be tagged v1.2.1 afterwards.
+  tree is correct and pushed. UPDATE (retracted later same day): the other
+  agent released v1.2.0 (`8acbc14`) — `4aa820f`/`eda28c4` are ancestors of
+  that tag, so these fixes shipped inside v1.2.0; v1.2.1 is reserved for
+  NEW fixes and no tag is planned.
 - Verify: `python3 -m unittest discover -s app/tests -t .` (41 OK) ·
   `git log --oneline -3` (4aa820f on top of 47bddc8).
 
