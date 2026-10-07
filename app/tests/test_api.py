@@ -356,6 +356,39 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertEqual(status, 404)
 
+    def test_rename_folder_changes_disk(self):
+        """Renaming a folder moves the whole tree on disk and on read."""
+        self.api("POST", self.folder_url("olddir"))
+        self.api("PUT", self.file_url("olddir/a.md"), body={"content": "# moved"})
+        status, payload = self.api(
+            "POST", "/api/rename", body={"from": "olddir", "to": "newdir"}
+        )
+        self.assertEqual(status, 200)
+        self.assertFalse((self.notes_root / "olddir").exists())
+        self.assertTrue((self.notes_root / "newdir" / "a.md").is_file())
+        status, payload = self.api("GET", self.file_url("newdir/a.md"))
+        self.assertEqual(payload["content"], "# moved")
+
+    def test_rename_notes_root_rejected(self):
+        """The vault root itself must never be renameable."""
+        status, payload = self.api(
+            "POST", "/api/rename", body={"from": "", "to": "moved"}
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("error", payload)
+        self.assertTrue(self.notes_root.is_dir())
+
+    def test_move_folder_into_itself_rejected(self):
+        """A folder cannot be moved under its own subtree (would recurse)."""
+        self.api("POST", self.folder_url("box"))
+        for to in ("box/inner", "box/inner/deep"):
+            with self.subTest(to=to):
+                status, payload = self.api(
+                    "POST", "/api/rename", body={"from": "box", "to": to}
+                )
+                self.assertEqual(status, 400)
+                self.assertFalse((self.notes_root / "box" / "inner").exists())
+
     # ------------------------------------------------------------------ #
     # Delete
     # ------------------------------------------------------------------ #
@@ -391,6 +424,32 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertFalse((self.notes_root / "stuff").exists())
+
+    def test_delete_folder_recursive_removes_nested_tree(self):
+        """recursive=true must delete nested subfolders too, while leaving
+        sibling files in the vault untouched."""
+        self.api("POST", self.folder_url("tree"))
+        self.api("POST", self.folder_url("tree/inner"))
+        self.api("PUT", self.file_url("tree/top.md"), body={"content": "top"})
+        self.api("PUT", self.file_url("tree/inner/deep.md"), body={"content": "deep"})
+        self.api("PUT", self.file_url("keep.md"), body={"content": "keep me"})
+
+        status, payload = self.api(
+            "DELETE", self.folder_url("tree", recursive=True)
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["deleted"])
+        self.assertFalse((self.notes_root / "tree").exists())
+        self.assertTrue((self.notes_root / "keep.md").is_file())
+
+    def test_delete_file_path_that_is_a_folder_400(self):
+        """DELETE /api/file on an existing folder must refuse (400), not
+        unlink the directory."""
+        self.api("POST", self.folder_url("folder.md"))
+        status, payload = self.api("DELETE", self.file_url("folder.md"))
+        self.assertEqual(status, 400)
+        self.assertIn("error", payload)
+        self.assertTrue((self.notes_root / "folder.md").is_dir())
 
     def test_delete_notes_root_rejected(self):
         status, payload = self.api("DELETE", "/api/folder?path=")
@@ -434,6 +493,49 @@ class ApiTestCase(unittest.TestCase):
 
         # empty query -> no results
         status, payload = self.api("GET", "/api/search?q=")
+        self.assertEqual(payload["results"], [])
+
+    def test_search_skips_hidden_nonmarkdown_symlinks_and_oversized(self):
+        """Search must never surface hidden entries, non-markdown files,
+        symlinks (in-vault or escaping), or files over MAX_FILE_BYTES."""
+        (self.notes_root / "visible.md").write_text(
+            "needle in the haystack", encoding="utf-8"
+        )
+        (self.notes_root / "notes.md").write_text(
+            "no match here", encoding="utf-8"
+        )
+        (self.notes_root / "plain.txt").write_text(
+            "needle in plain text", encoding="utf-8"
+        )
+        (self.notes_root / ".hidden.md").write_text(
+            "needle hidden", encoding="utf-8"
+        )
+        (self.notes_root / ".hiddendir").mkdir()
+        (self.notes_root / ".hiddendir" / "h.md").write_text(
+            "needle in hidden dir", encoding="utf-8"
+        )
+        (self.notes_root / "big.md").write_text(
+            "needle " + "x" * server.MAX_FILE_BYTES, encoding="utf-8"
+        )
+        try:
+            os.symlink("notes.md", self.notes_root / "alias.md")
+            os.symlink("/etc/hostname", self.notes_root / "sys.md")
+        except OSError as exc:
+            self.skipTest("cannot create symlink: %s" % exc)
+
+        status, payload = self.api("GET", "/api/search?q=needle")
+        self.assertEqual(status, 200)
+        paths = [r["path"] for r in payload["results"]]
+        self.assertIn("visible.md", paths)
+        self.assertNotIn("plain.txt", paths)        # non-markdown pruned
+        self.assertNotIn(".hidden.md", paths)       # hidden file pruned
+        self.assertNotIn(".hiddendir/h.md", paths)  # hidden folder pruned
+        self.assertNotIn("alias.md", paths)         # symlink pruned
+        self.assertNotIn("sys.md", paths)           # escaping symlink pruned
+        self.assertNotIn("big.md", paths)           # oversized pruned
+
+        # non-markdown files never match, even by filename
+        status, payload = self.api("GET", "/api/search?q=plain")
         self.assertEqual(payload["results"], [])
 
     # ------------------------------------------------------------------ #
@@ -591,6 +693,23 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(status, 409)                # consistent with the above
         self.assertIn("error", payload)
         self.assertEqual(list((self.notes_root / "x.md").iterdir()), [])
+
+    def test_put_requires_string_content(self):
+        """PUT with a missing or non-string 'content' must be rejected and
+        must not create or truncate anything on disk."""
+        status, payload = self.api("PUT", self.file_url("x.md"), body={})
+        self.assertEqual(status, 400)
+        self.assertFalse((self.notes_root / "x.md").exists())
+
+        status, payload = self.api(
+            "PUT", self.file_url("x.md"), body={"content": 42}
+        )
+        self.assertEqual(status, 400)
+        self.assertFalse((self.notes_root / "x.md").exists())
+
+        status, payload = self.api("PUT", self.file_url("x.md"), body={"content": None})
+        self.assertEqual(status, 400)
+        self.assertFalse((self.notes_root / "x.md").exists())
 
     def test_put_content_too_large_rejected_413(self):
         big = "x" * (server.MAX_FILE_BYTES + 1)

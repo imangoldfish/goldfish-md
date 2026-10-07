@@ -51,6 +51,18 @@ What happened · decisions + why · unfinished work · concrete next step.
 End with the exact command(s) that verify the claims. Keep it to a few lines.
 ```
 
+#### 2026-10-07 — tester: fresh suite validation + gap coverage
+- Ran the existing suite fresh: 33/33 OK against a throwaway temp vault (real
+  server, ephemeral port; repo `notes/` untouched, left its untracked user
+  files alone).
+- Added 7 tests to `app/tests/test_api.py` for real coverage gaps (no
+  production changes): folder rename (disk move, root-rename 400 guard,
+  folder-into-itself 400 guard), recursive folder DELETE over a nested tree +
+  sibling survival, DELETE /api/file on a folder → 400, search pruning
+  (hidden/non-md/symlink/oversized, incl. filename-match on non-md), PUT
+  missing/non-string content → 400. Suite now 40/40.
+- Verify: `python3 -m unittest discover -s app/tests -t .` (Ran 40 tests, OK).
+
 #### 2026-10-07 — verified the kit improvements landed
 - Reviewed the implementation against the brief: all 6 changes present.
   - Protocol text identical between global `~/.config/opencode/AGENTS.md` and
