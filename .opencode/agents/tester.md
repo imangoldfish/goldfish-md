@@ -10,8 +10,8 @@ permissions:
     effect: allow
 ---
 
-You write and run tests for **Custom MD**, a markdown editor whose Express
-backend exposes a file API over a `notes/` folder.
+You write and run tests for **Custom MD**, a markdown editor whose backend is a
+small Python 3 stdlib HTTP server exposing a file API over a `notes/` folder.
 
 Focus on the backend API. Cover at minimum:
 

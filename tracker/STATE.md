@@ -19,7 +19,8 @@ yours — portable, greppable, editable in any other tool.
   preview, create/rename/delete, search, polish (shortcuts + autosave).
 - `v1.1.0` tagged and pushed (autosave + `RELEASING.md`). Remote:
   `github.com/imangoldfish/goldfish-md`.
-- `README.md`, `PLAN.md`, `RELEASING.md` are current.
+- `README.md`, `PLAN.md`, `RELEASING.md` are current; agent definitions
+  describe the Python stdlib backend accurately.
 - Test suite covers the file API, traversal/symlink rejection, and edge
   cases. Run it from the repo root:
 
@@ -29,9 +30,6 @@ yours — portable, greppable, editable in any other tool.
 
 ## Next up
 
-- [ ] Fix stale agent definitions: `.opencode/agents/tester.md` (and the
-      descriptions in `reviewer.md` / `docs.md`) still say "Express backend" —
-      this project is Python stdlib. Update them to match reality.
 - [ ] Pick the next feature (see backlog below).
 
 ## Ideas backlog (not started)
@@ -51,6 +49,25 @@ Format:
 What happened · decisions + why · unfinished work · concrete next step.
 Keep it to a few lines.
 ```
+
+#### 2026-10-07 — autosave release + handoff polish
+- Added autosave to the editor (`app/static/app.js`): debounced ~1s save, flush
+  on file switch (no more "unsaved?" confirm), writes serialized so an older
+  save can't clobber a newer one, autosaves refused for paths mid-rename/delete
+  (no ghost recreation of moved/deleted notes), hidden-tab flush.
+- Reviewer ran 3 passes; round-1 majors (write ordering, rename/delete
+  resurrection, typing-during-switch) and round-2 major (delete discarding
+  edits before success) all fixed; final verdict: ready to merge. Tester added
+  4 PUT tests (33 total, all green). Docs agent updated the README autosave
+  bullet.
+- Released: tagged + pushed `v1.1.0`, created the GitHub release
+  (github.com/imangoldfish/goldfish-md/releases/tag/v1.1.0).
+- Added `RELEASING.md` (release checklist) + README link; committed, pushed.
+  User asked to learn git/GitHub — handed them the tag-vs-release model.
+- Fixed the stale "Express backend" wording in `.opencode/agents/tester.md`
+  (the only stale agent definition); `reviewer.md`/`docs.md` were already
+  Python-stdlib.
+- Unfinished: next feature not chosen yet (see backlog below).
 
 #### 2026-10-07 — bootstrap (this tracker)
 - Set up the cross-session tracker protocol: `AGENTS.md` (always loaded,
