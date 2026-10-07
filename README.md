@@ -2,7 +2,7 @@
 
 A tiny local markdown reader/editor — a Python 3 stdlib HTTP server with a vanilla-JS frontend, pointed at a folder of notes.
 
-Custom MD serves a sidebar file tree (folders + `.md` files) and a live split preview with no build step and no dependencies. It stores everything as plain markdown files in a folder you choose ("the vault"), so your notes stay yours: portable, greppable, and editable in any other tool.
+goldfish-md serves a sidebar file tree (folders + `.md` files) and a live split preview with no build step and no dependencies. It stores everything as plain markdown files in a folder you choose ("the vault"), so your notes stay yours: portable, greppable, and editable in any other tool.
 
 ## AI disclosure
 

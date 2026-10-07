@@ -1,9 +1,9 @@
-# Welcome to Custom MD
+# Welcome to goldfish-md
 
 This file lives in your `notes/` folder as a plain `.md` file. Edit it, rename
 it, or delete it — it's just a file on disk.
 
-Custom MD is a small local markdown editor: a file tree on the left, a writing
+goldfish-md is a small local markdown editor: a file tree on the left, a writing
 pane on the right, and a live preview beside it. Everything you type is saved
 to a real `.md` file, so your notes stay yours.
 
