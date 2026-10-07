@@ -1,4 +1,4 @@
-# Custom MD
+# goldfish-md
 
 A tiny local markdown reader/editor — a Python 3 stdlib HTTP server with a vanilla-JS frontend, pointed at a folder of notes.
 
