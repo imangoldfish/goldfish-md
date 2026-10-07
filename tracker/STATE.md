@@ -51,6 +51,19 @@ What happened · decisions + why · unfinished work · concrete next step.
 Keep it to a few lines.
 ```
 
+#### 2026-10-07 — review tracker system + handoff brief
+- Reviewed the cross-session tracker system based on firsthand use (found
+  drift: tracker claimed docs current while `PLAN.md` M0 was stale; plus
+  concurrent-session clobbering risk).
+- Wrote `~/Programming/OpenCode/tracker-improvements-brief.md` — a
+  self-contained improvement spec (verify-before-claiming-done, rebase-before-
+  write, cheap fallback entry, verify lines, compaction, privacy hygiene) for
+  the implementing agent to apply to `opencode-memory-kit` + global
+  `~/.config/opencode/AGENTS.md`. Saved outside this repo so the user can hand
+  it to the other agent directly.
+- Unfinished: kit improvements pending implementation; V2 features still
+  un-chosen (human is drafting ideas).
+
 #### 2026-10-07 — kit README (hiatus note)
 - Added `README.md` to `~/Programming/OpenCode/opencode-memory-kit` — a
   welcome-back note so a future me can tell at a glance what the kit is,
