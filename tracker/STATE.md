@@ -51,6 +51,20 @@ What happened · decisions + why · unfinished work · concrete next step.
 Keep it to a few lines.
 ```
 
+#### 2026-10-07 — global kit + versioned template
+- Promoted the tracker idea to a reusable system: a **global hook**
+  (`~/.config/opencode/AGENTS.md`, auto-loaded in every workspace) plus a
+  memory kit (`AGENTS.section.md`, `tracker/STATE.md` seed, `scaffold.sh`).
+- Kit is versioned in this repo at `templates/opencode-memory-kit/`;
+  `~/.config/opencode/memory-template` is a **symlink** to it — single source
+  of truth, no drift.
+- New-project setup from now on:
+  `~/.config/opencode/memory-template/scaffold.sh`
+- Decision: keep the kit in this repo (no dotfiles repo exists yet) — move it
+  to a dotfiles repo later if one appears, re-pointing the symlink.
+- Unfinished: nothing blocking; next real feature still un-chosen (human is
+  drafting V2 ideas).
+
 #### 2026-10-07 — state handoff update
 - Picked up "Next up": verified the stale-agent-definition item is already
   fixed — all three `.opencode/agents/*.md` describe the Python stdlib backend.
