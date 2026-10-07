@@ -5,7 +5,7 @@ The cross-session handoff file. Every session **reads this first** and
 protocol.
 
 **Last updated:** 2026-10-07
-**Status:** v1.1.0 released · v1.2 (M6) implemented in `4aa820f`, pushed — tag/release decision pending with the human
+**Status:** v1.1.0 released · M6/v1.2 implemented (`4aa820f`, pushed) — v1.2.0 tag/release is the other agent's; this session's bug fixes are held to be tagged **v1.2.1** (semver patch) after v1.2.0 ships
 
 ## Goal
 
@@ -33,8 +33,9 @@ yours — portable, greppable, editable in any other tool.
 
 ## Next up
 
-- [ ] Decide on tagging/releasing v1.2.0 — M6 landed in `4aa820f` (pushed);
-      see `RELEASING.md` for the checklist.
+- [ ] Other agent ships v1.2.0 → then tag this session's fixes as **v1.2.1**
+      (semver patch: bug fixes only) per `RELEASING.md`. Do not tag before
+      v1.2.0 exists.
 - [ ] Pick the next feature (see backlog below) — human is drafting V2 ideas;
       do not pick unilaterally.
 
@@ -82,7 +83,8 @@ End with the exact command(s) that verify the claims. Keep it to a few lines.
 - Surprise found mid-session: a concurrent session committed `4aa820f`
   ("1.2: import, highlight, collapsible sidebar, welcome.md") and its
   `git add -A` swept my then-uncommitted fixes into it. Verified the final
-  tree is correct and pushed. v1.2 is not yet tagged.
+  tree is correct and pushed. No tag now: the human said another agent owns
+  v1.2.0 (tag/release); these fixes are held to be tagged v1.2.1 afterwards.
 - Verify: `python3 -m unittest discover -s app/tests -t .` (41 OK) ·
   `git log --oneline -3` (4aa820f on top of 47bddc8).
 
