@@ -65,6 +65,18 @@ End with the exact command(s) that verify the claims. Keep it to a few lines.
   protocol `diff` global/vs/section (clean) ·
   `python3 -m unittest discover -s app/tests -t .`
 
+#### 2026-10-07 — kit restructure: template vs live split
+- Moved the kit's seed materials to `template/` and made `tracker/STATE.md`
+  the kit's own live tracker (its own `.gitignore`); added a project
+  `AGENTS.md` for the kit; `scaffold.sh` + README + global hook footer
+  updated to match.
+- Why: the user wants to run sessions directly inside the kit repo — the old
+  layout would have made sessions read the seed template as if it were live
+  state. The kit now self-hosts: it runs the same protocol it ships.
+- Verify: `~/.config/opencode/memory-template/scaffold.sh` smoke test
+  (generates tracker/ + .gitignore + AGENTS.md from `template/`) ·
+  `git -C opencode-memory-kit status` clean · commit `c37def0`.
+
 #### 2026-10-07 — applied the improvement brief to the kit
 - Implemented the review's 6 changes in `opencode-memory-kit`:
   verify-before-claiming (grep docs when closing a "Next up" item),
