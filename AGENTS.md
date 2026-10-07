@@ -15,9 +15,9 @@ server with a vanilla-JS frontend, pointed at a folder of markdown notes
 - `notes/` — the default vault; **user data, not code**. Leave loose sample
   notes alone unless the task is about the vault itself.
 - `tracker/STATE.md` — the cross-session state tracker (see protocol below)
-- `templates/opencode-memory-kit/` — the reusable tracker kit (AGENTS section
-  snippet + `tracker/STATE.md` seed + `scaffold.sh`); installed copy at
-  `~/.config/opencode/memory-template` is a symlink to this
+- Tracker kit (reusable, not part of this project): lives at
+  `~/Programming/OpenCode/opencode-memory-kit`, symlinked from
+  `~/.config/opencode/memory-template`
 
 ## Commands
 

@@ -51,6 +51,17 @@ What happened · decisions + why · unfinished work · concrete next step.
 Keep it to a few lines.
 ```
 
+#### 2026-10-07 — move kit out of this project → its own repo
+- Moved `templates/opencode-memory-kit/` out of this repo to
+  `~/Programming/OpenCode/opencode-memory-kit`, now its own git repo
+  (commit 1257d0c, local identity only — no global git identity set).
+- Re-pointed the `~/.config/opencode/memory-template` symlink to the new
+  home; scaffolder verified working through it.
+- Supersedes the earlier "keep the kit in this repo" decision: the kit is
+  generic tooling, not Custom MD code, so it belongs outside the project.
+- Tip for future: set `git config --global user.name/user.email` so new
+  repos don't need manual identity setup.
+
 #### 2026-10-07 — global kit + versioned template
 - Promoted the tracker idea to a reusable system: a **global hook**
   (`~/.config/opencode/AGENTS.md`, auto-loaded in every workspace) plus a
