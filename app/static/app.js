@@ -52,6 +52,7 @@ const els = {
   openDevice: document.getElementById("open-device"),
   status: document.getElementById("status"),
   toggleSidebar: document.getElementById("toggle-sidebar"),
+  themeToggle: document.getElementById("theme-toggle"),
 };
 
 const state = {
@@ -310,8 +311,10 @@ function showStatus(message) {
 
 // Create the note at `path`; if that name is taken, retry as "name (1).md",
 // "name (2).md", … so an import never silently overwrites an existing note.
+// Capped at 1000 attempts so a hostile/pre-seeded vault cannot make the
+// client loop forever.
 async function createUniqueNote(path) {
-  for (let attempt = 0; ; attempt++) {
+  for (let attempt = 0; attempt < 1000; attempt++) {
     const name = path.slice(path.lastIndexOf("/") + 1);
     const dot = name.lastIndexOf(".");
     const stem = dot > 0 ? name.slice(0, dot) : name;
@@ -326,53 +329,97 @@ async function createUniqueNote(path) {
       if (!/already exists/i.test(error.message)) throw error;
     }
   }
+  throw new Error("too many name collisions while importing");
 }
 
+// Only visible markdown files are importable: dotfiles/whole "hidden" names
+// (.md, .notes.md) would be created but skipped by the tree.
+const isImportableName = (name) => hasMarkdownExt(name) && !name.startsWith(".");
+
 async function importFile(file, dir) {
-  if (!hasMarkdownExt(file.name)) return 0;
-  if (file.size > 5 * 1024 * 1024) throw new Error(`"${file.name}" is too large to import (max 5 MB)`);
-  const content = await file.text();
+  const content = await file.text(); // read first: a failed read imports nothing
+  if (content.length > 5 * 1024 * 1024) {
+    throw new Error(`"${file.name}" is too large to import (max 5 MB)`);
+  }
   const path = joinPath(dir, file.name);
   const created = await createUniqueNote(path);
-  await api.save(created, content);
-  return 1;
+  try {
+    await api.save(created, content);
+  } catch (error) {
+    // Best-effort cleanup so a failed write does not leave an empty orphan
+    // note (which would fill with "(1)", "(2)" copies on retry).
+    try { await api.removeFile(created); } catch { /* nothing to clean up */ }
+    throw error;
+  }
+  return created;
 }
 
 async function importFiles(fileList, dir) {
-  const files = Array.from(fileList);
-  const refused = files.filter((f) => !hasMarkdownExt(f.name));
-  let imported = 0;
+  const files = Array.from(fileList).filter(isImportableName);
+  const refused = Array.from(fileList).length - files.length;
+  const targetDir = dir || state.activeDir;
+  const imported = [];
+  const errors = [];
   for (const file of files) {
-    if (!hasMarkdownExt(file.name)) continue;
     try {
-      imported += await importFile(file, dir || state.activeDir);
+      const created = await importFile(file, targetDir);
+      imported.push(created);
     } catch (error) {
-      showStatus(error.message);
+      errors.push(error.message);
     }
   }
-  if (imported > 0) {
+  const parts = [];
+  if (imported.length) {
     await refreshTree();
-    showStatus(
-      `Imported ${imported} note${imported === 1 ? "" : "s"} into ${state.activeDir || "the vault root"}.`);
+    parts.push(`Imported ${imported.length} note${imported.length === 1 ? "" : "s"} into ${targetDir || "the vault root"}.`);
   }
-  if (refused.length) {
-    showStatus(
-      `Skipped ${refused.length} non-markdown file${refused.length === 1 ? "" : "s"} (only .md is imported).`);
+  if (refused) {
+    parts.push(`Skipped ${refused} non-markdown/hidden file${refused === 1 ? "" : "s"} (only visible .md files are imported).`);
   }
-  if (!imported && !refused.length) showStatus("No markdown files to import.");
+  parts.push(...errors);
+  if (parts.length) showStatus(parts.join(" "));
+  else showStatus("No markdown files to import.");
 }
 
 /* --------------------------- Collapsible sidebar -------------------------- */
 
 function initSidebar() {
-  const stored = localStorage.getItem("custommd.sidebarHidden");
-  if (stored === "1") document.body.classList.add("sidebar-hidden");
+  try {
+    if (localStorage.getItem("custommd.sidebarHidden") === "1") document.body.classList.add("sidebar-hidden");
+  } catch { /* storage blocked: default to visible */ }
   els.toggleSidebar.addEventListener("click", () => {
-    document.body.classList.toggle("sidebar-hidden");
-    localStorage.setItem(
-      "custommd.sidebarHidden",
-      document.body.classList.contains("sidebar-hidden") ? "1" : "0");
+    const hidden = document.body.classList.toggle("sidebar-hidden");
+    try { localStorage.setItem("custommd.sidebarHidden", hidden ? "1" : "0"); } catch { /* ignore */ }
   });
+}
+
+/* ------------------------------- Theme switch ----------------------------- */
+
+const THEMES = ["light", "dark", "system"];
+const THEME_ICONS = { light: "☀️", dark: "🌙", system: "🖥️" };
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+}
+
+function cycleTheme() {
+  let index = THEMES.indexOf(document.documentElement.dataset.theme);
+  if (index === -1) index = 2; // unknown -> system
+  const next = THEMES[(index + 1) % THEMES.length];
+  applyTheme(next);
+  try { localStorage.setItem("custommd.theme", next); } catch { /* ignore */ }
+  els.themeToggle.textContent = THEME_ICONS[next];
+  els.themeToggle.title = `Theme: ${next} (click to change)`;
+}
+
+function initTheme() {
+  let stored = "system";
+  try { stored = localStorage.getItem("custommd.theme") || "system"; } catch { /* ignore */ }
+  if (!THEMES.includes(stored)) stored = "system";
+  applyTheme(stored);
+  els.themeToggle.textContent = THEME_ICONS[stored];
+  els.themeToggle.title = `Theme: ${stored} (click to change)`;
+  els.themeToggle.addEventListener("click", cycleTheme);
 }
 
 /* --------------------------- Create / rename / delete --------------------- */
@@ -586,34 +633,38 @@ els.fileInput.addEventListener("change", async () => {
 });
 
 // Drag & drop: any .md file dropped on the window is imported into the vault.
-let dragDepth = 0;
+// The overlay shows while a Files drag is inside the window; it hides when the
+// cursor leaves the window (dragleave with no relatedTarget). Folders can't be
+// imported (their files are not exposed uniformly), so a folder drop gets a
+// message.
+const hasFiles = (event) =>
+  !!event.dataTransfer && [...event.dataTransfer.types].includes("Files");
+
 window.addEventListener("dragenter", (event) => {
-  if (!event.dataTransfer || ![...event.dataTransfer.types].includes("Files")) return;
+  if (!hasFiles(event)) return;
   event.preventDefault();
-  dragDepth++;
   document.getElementById("drop-hint").classList.remove("hidden");
 });
 window.addEventListener("dragleave", (event) => {
-  if (!event.dataTransfer || ![...event.dataTransfer.types].includes("Files")) return;
-  if (--dragDepth <= 0) {
-    dragDepth = 0;
-    document.getElementById("drop-hint").classList.add("hidden");
-  }
+  if (!hasFiles(event)) return;
+  if (!event.relatedTarget) document.getElementById("drop-hint").classList.add("hidden");
 });
 window.addEventListener("dragover", (event) => {
-  if (event.dataTransfer && [...event.dataTransfer.types].includes("Files")) {
-    event.preventDefault(); // required for drop to fire
-  }
+  if (hasFiles(event)) event.preventDefault(); // required for drop to fire
 });
 window.addEventListener("drop", (event) => {
   event.preventDefault();
-  dragDepth = 0;
   document.getElementById("drop-hint").classList.add("hidden");
   const files = event.dataTransfer ? event.dataTransfer.files : null;
-  if (files && files.length) importFiles(files, state.activeDir);
+  if (files && files.length) {
+    importFiles(files, state.activeDir);
+  } else {
+    showStatus("Nothing to import — drop .md files, not folders.");
+  }
 });
 
 initSidebar();
+initTheme();
 
 els.tree.addEventListener("click", (event) => {
   const button = event.target.closest(".act");

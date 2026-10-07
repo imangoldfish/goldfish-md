@@ -1,6 +1,8 @@
 /* Custom MD - layout and markdown typography */
 
-:root {
+:root,
+:root[data-theme="light"],
+:root[data-theme="system"] {
   --bg: #f6f6f4;
   --panel: #ffffff;
   --border: #e3e3df;
@@ -31,36 +33,68 @@
   --tok-punct: #6b7280;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115;
-    --panel: #161a20;
-    --border: #262b33;
-    --text: #e6e8eb;
-    --muted: #9aa4b2;
-    --accent: #60a5fa;
-    --accent-soft: #1c2b45;
-    --code-bg: #1b2027;
-    --danger: #f87171;
+/* Dark scheme: follows the OS (prefers-color-scheme) unless the user pinned
+   the theme with the toolbar toggle. data-theme="system" keeps auto behavior;
+   data-theme="light" disables dark; data-theme="dark" forces it. */
 
-    --tok-keyword: #c4b5fd;
-    --tok-string: #6ee7b7;
-    --tok-comment: #7a828e;
-    --tok-number: #fcd34d;
-    --tok-builtin: #7dd3fc;
-    --tok-func: #5eead4;
-    --tok-tag: #fda4af;
-    --tok-attr: #86efac;
-    --tok-prop: #7dd3fc;
-    --tok-hex: #fdba74;
-    --tok-pseudo: #c4b5fd;
-    --tok-key: #7dd3fc;
-    --tok-literal: #fcd34d;
-    --tok-decorator: #fda4af;
-    --tok-flag: #86efac;
-    --tok-var: #c4b5fd;
-    --tok-punct: #9aa4b2;
-  }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1115;
+  --panel: #161a20;
+  --border: #262b33;
+  --text: #e6e8eb;
+  --muted: #9aa4b2;
+  --accent: #60a5fa;
+  --accent-soft: #1c2b45;
+  --code-bg: #1b2027;
+  --danger: #f87171;
+
+  --tok-keyword: #c4b5fd;
+  --tok-string: #6ee7b7;
+  --tok-comment: #7a828e;
+  --tok-number: #fcd34d;
+  --tok-builtin: #7dd3fc;
+  --tok-func: #5eead4;
+  --tok-tag: #fda4af;
+  --tok-attr: #86efac;
+  --tok-prop: #7dd3fc;
+  --tok-hex: #fdba74;
+  --tok-pseudo: #c4b5fd;
+  --tok-key: #7dd3fc;
+  --tok-literal: #fcd34d;
+  --tok-decorator: #fda4af;
+  --tok-flag: #86efac;
+  --tok-var: #c4b5fd;
+  --tok-punct: #9aa4b2;
+} }
+
+:root[data-theme="dark"] {
+  --bg: #0f1115;
+  --panel: #161a20;
+  --border: #262b33;
+  --text: #e6e8eb;
+  --muted: #9aa4b2;
+  --accent: #60a5fa;
+  --accent-soft: #1c2b45;
+  --code-bg: #1b2027;
+  --danger: #f87171;
+
+  --tok-keyword: #c4b5fd;
+  --tok-string: #6ee7b7;
+  --tok-comment: #7a828e;
+  --tok-number: #fcd34d;
+  --tok-builtin: #7dd3fc;
+  --tok-func: #5eead4;
+  --tok-tag: #fda4af;
+  --tok-attr: #86efac;
+  --tok-prop: #7dd3fc;
+  --tok-hex: #fdba74;
+  --tok-pseudo: #c4b5fd;
+  --tok-key: #7dd3fc;
+  --tok-literal: #fcd34d;
+  --tok-decorator: #fda4af;
+  --tok-flag: #86efac;
+  --tok-var: #c4b5fd;
+  --tok-punct: #9aa4b2;
 }
 
 * { box-sizing: border-box; }

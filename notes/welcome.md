@@ -42,9 +42,10 @@ https://example.com. A reference link like [the docs][ref] works too.
 
 ### Images
 
-An image uses the same syntax as a link, with a `!` in front:
+An image uses the same syntax as a link, with a `!` in front (this one is an
+inline SVG so it renders offline):
 
-![A placeholder image](https://placehold.co/400x120?text=Custom+MD)
+![A placeholder image](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='400'%20height='120'%3E%3Crect%20width='400'%20height='120'%20fill='%23e6efff'/%3E%3Ctext%20x='200'%20y='72'%20font-size='26'%20text-anchor='middle'%20fill='%232563eb'%20font-family='sans-serif'%3ECustom%20MD%3C/text%3E%3C/svg%3E)
 
 ### Lists
 

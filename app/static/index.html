@@ -4,6 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Custom MD</title>
+  <script>
+    // Apply the saved theme before first paint to avoid a flash of the wrong
+    // scheme. Fails silently if storage is blocked (defaults to system).
+    try {
+      var t = localStorage.getItem("custommd.theme");
+      if (t === "light" || t === "dark" || t === "system") {
+        document.documentElement.dataset.theme = t;
+      }
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
 </head>
@@ -36,6 +46,7 @@
         <span id="current-path" class="path">No file open</span>
         <span id="dirty" class="dirty hidden">● unsaved</span>
         <div class="spacer"></div>
+        <button id="theme-toggle" title="Theme">🖥️</button>
         <button id="save" disabled>Save</button>
         <div class="view-toggle" role="group" aria-label="View">
           <button data-view="split" class="active">Split</button>

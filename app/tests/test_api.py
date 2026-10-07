@@ -382,6 +382,18 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue((self.notes_root / "notes-archive").is_dir())
 
+    def test_nul_byte_in_static_path_is_400_not_500(self):
+        """A NUL byte in a static route must be rejected with 400, never crash
+        into a 500 from Path.resolve() raising on the embedded \\x00."""
+        for bad in ("/%00", "/index.html%00", "/%00robots.txt"):
+            status, _ = self.api("GET", bad)
+            self.assertEqual(status, 400, "expected 400 for %r" % bad)
+
+        # Well-formed static paths still work afterwards (raw fetch: CSS/JS are
+        # not JSON, which the api() helper assumes).
+        status = urllib.request.urlopen(self.base + "/styles.css").status
+        self.assertEqual(status, 200)
+
     def test_rename_folder_changes_disk(self):
         """Renaming a folder moves the whole tree on disk and on read."""
         self.api("POST", self.folder_url("olddir"))

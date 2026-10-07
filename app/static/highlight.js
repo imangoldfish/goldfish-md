@@ -44,8 +44,7 @@
       ["tag", /<\/?[a-zA-Z][\w-]*/],
       ["attr", /\b[a-zA-Z-]+(?==)/],
       ["string", /"[^"]*"|'[^']*'/],
-      ["punct", /[<>/=]|</],
-      ["comment", /<\/[a-zA-Z][\w-]*>/]
+      ["punct", /[<>/=]/]
     ],
     css: [
       ["comment", /\/\*[\s\S]*?\*\//],
@@ -91,6 +90,23 @@
     sql: "sql"
   };
 
+  // Sticky matching: every rule only ever tries to match at the cursor
+  // position (`lastIndex`), so the left-to-right scan is linear in the block
+  // size instead of quadratic. Required because we assign lastIndex per rule
+  // per position below.
+  for (var lang in RULES) {
+    var list = RULES[lang];
+    for (var i = 0; i < list.length; i++) {
+      list[i][1] = new RegExp(list[i][1].source,
+        list[i][1].flags.indexOf("y") === -1 ? list[i][1].flags + "y" : list[i][1].flags);
+    }
+  }
+
+  // Very large blocks fall back to plain escaped text: highlighting a pasted
+  // log or a giant data blob adds nothing and costs a visible pause on every
+  // keystroke (the preview re-renders ~120 ms after each edit).
+  var MAX_BLOCK = 64 * 1024;
+
   function norm(lang) {
     if (!lang) return null;
     var key = String(lang).toLowerCase();
@@ -101,6 +117,7 @@
   // between matches is escaped verbatim. Zero-length matches are impossible
   // with the rules above (every pattern consumes at least one char).
   function highlight(code, lang) {
+    if (code.length > MAX_BLOCK) return esc(code);
     var rules = RULES[norm(lang)];
     var out = "";
     var i = 0;
@@ -114,7 +131,7 @@
         var rule = rules[r];
         rule[1].lastIndex = i;
         var m = rule[1].exec(code);
-        if (m && m.index === i && (!best || m[0].length > best.m[0].length)) {
+        if (m && (!best || m[0].length > best.m[0].length)) {
           best = { type: rule[0], m: m };
         }
       }
