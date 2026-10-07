@@ -139,10 +139,53 @@ async function refreshTree() {
 
 /* ------------------------------- Open / save ------------------------------ */
 
+// Autosave writes the open note after a short pause in typing, and flushes any
+// pending edit before switching notes. Switching never prompts to discard.
+const AUTOSAVE_DELAY = 1000; // ms of inactivity before an autosave fires
+
+let autosaveTimer = null;
+let switchToken = 0;    // bumps on every openFile() so stale loads are ignored
+let saveChain = Promise.resolve();
+let queuedSave = null;  // { path, content, silent, done } of the latest write
+let pendingDelete = new Set(); // paths being deleted; autosaves to them are refused
+let pendingRename = new Set(); // old paths being renamed; autosaves to them are refused
+
+function frozenPath(p) {
+  for (const set of [pendingDelete, pendingRename]) {
+    for (const root of set) {
+      if (p === root || p.startsWith(root + "/")) return true;
+    }
+  }
+  return false;
+}
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    saveFile({ silent: true });
+  }, AUTOSAVE_DELAY);
+}
+
+function cancelAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+}
+
 async function openFile(path) {
-  if (state.dirty && !confirm("You have unsaved changes. Discard them?")) return;
+  const token = ++switchToken;
+  if (state.currentPath === path) return;
+  // Autosave (rather than prompt) before leaving the current note.
+  if (state.dirty) {
+    const saved = await saveFile();
+    if (!saved) { scheduleAutosave(); return; } // save failed: stay, re-arm autosave
+    if (token !== switchToken) return;          // a newer switch superseded this one
+    if (state.dirty) { scheduleAutosave(); return; } // typed during the save
+  }
   try {
     const data = await api.file(path);
+    if (token !== switchToken) return;
+    if (state.dirty) return;            // typed while loading; keep this note
     state.currentPath = data.path;
     state.dirty = false;
     els.editor.value = data.content;
@@ -156,15 +199,48 @@ async function openFile(path) {
   }
 }
 
-async function saveFile() {
-  if (!state.currentPath) return;
-  try {
-    await api.save(state.currentPath, els.editor.value);
-    state.dirty = false;
-    updateDirty();
-  } catch (error) {
-    alert(error.message);
+// Writes are serialized through one chain so an older save can never land after
+// a newer one and leave stale content on disk.
+function saveFile({ silent = false } = {}) {
+  cancelAutosave();
+  if (!state.currentPath) return Promise.resolve(true);
+
+  const path = state.currentPath;
+  const content = els.editor.value;
+
+  // Reuse an identical write that is already queued or in flight.
+  if (queuedSave && queuedSave.path === path && queuedSave.content === content) {
+    if (!silent) queuedSave.silent = false; // surface failures to an explicit save
+    return queuedSave.done;
   }
+
+  const entry = { path, content, silent };
+  entry.done = saveChain.then(async () => {
+    try {
+      // A stale save for a file that is no longer open is a no-op.
+      if (state.currentPath !== path) return true;
+      // A save for a path being deleted/renamed right now is refused (not
+      // "saved") so callers abort rather than dropping edits; a write here
+      // would recreate the doomed/old path.
+      if (frozenPath(path)) return false;
+      await api.save(path, content);
+      // Only clear "unsaved" when the editor still matches what we wrote —
+      // the user may have typed more while the request was in flight.
+      if (state.currentPath === path && els.editor.value === content) {
+        state.dirty = false;
+        updateDirty();
+      }
+      return true;
+    } catch (error) {
+      if (!entry.silent) alert(error.message);
+      return false;
+    } finally {
+      if (queuedSave === entry) queuedSave = null;
+    }
+  });
+  saveChain = entry.done.then(() => {}, () => {});
+  queuedSave = entry;
+  return entry.done;
 }
 
 function updateDirty() {
@@ -233,6 +309,15 @@ async function renameNode(path, type) {
   const name = next.trim();
   if (!name || name === current) return;
   const to = joinPath(parentDir(path), name);
+  // Flush the open note (or a note inside the renamed folder) before the move,
+  // so a queued autosave cannot recreate the pre-rename path afterwards.
+  const open = state.currentPath;
+  if (open && (open === path || open.startsWith(path + "/"))) {
+    cancelAutosave();
+    if (state.dirty && !(await saveFile())) { scheduleAutosave(); return; }
+    await saveChain;
+  }
+  pendingRename.add(path); // refuse autosaves to the old path while it moves
   try {
     await api.rename(path, to);
     if (state.currentPath === path) {
@@ -244,12 +329,27 @@ async function renameNode(path, type) {
     await refreshTree();
   } catch (error) {
     alert(error.message);
+  } finally {
+    pendingRename.delete(path);
+    // Edits typed during the rename are still unsaved and now belong to the
+    // new path — re-arm so they are saved there (or to the old path if the
+    // rename failed and the note is untouched).
+    if (state.dirty && state.currentPath) scheduleAutosave();
   }
 }
 
 async function deleteNode(path, type) {
   const what = type === "dir" ? "folder" : "note";
   if (!confirm(`Delete ${what} "${path}"?`)) return;
+  const open = state.currentPath;
+  if (open && (open === path || open.startsWith(path + "/"))) {
+    // Let in-flight writes settle, then refuse new autosaves to the doomed
+    // path until the delete completes (or is cancelled/fails). The editor is
+    // left untouched meanwhile, so edits are never lost prematurely.
+    cancelAutosave();
+    await saveChain;
+    pendingDelete.add(path);
+  }
   try {
     if (type === "dir") {
       try {
@@ -272,6 +372,12 @@ async function deleteNode(path, type) {
     await refreshTree();
   } catch (error) {
     alert(error.message);
+  } finally {
+    // Unfreeze the path. On a cancelled/failed delete the note is still open
+    // with edits — re-arm the autosave so they are saved. On success
+    // closeFile() already cleared the editor.
+    pendingDelete.delete(path);
+    if (state.dirty && state.currentPath) scheduleAutosave();
   }
 }
 
@@ -333,6 +439,7 @@ els.editor.addEventListener("input", () => {
   if (!state.dirty) { state.dirty = true; updateDirty(); }
   clearTimeout(previewTimer);
   previewTimer = setTimeout(renderPreview, 120);
+  scheduleAutosave();
 });
 
 // Tab inserts two spaces instead of moving focus.
@@ -352,7 +459,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-document.getElementById("save").addEventListener("click", saveFile);
+document.getElementById("save").addEventListener("click", () => saveFile());
 document.getElementById("new-file").addEventListener("click", newFile);
 document.getElementById("new-folder").addEventListener("click", newFolder);
 document.getElementById("refresh").addEventListener("click", refreshTree);
@@ -376,6 +483,13 @@ for (const button of document.querySelectorAll(".view-toggle button")) {
 
 window.addEventListener("beforeunload", (event) => {
   if (state.dirty) event.preventDefault();
+});
+
+// Flush pending edits when the tab is hidden (e.g. switching apps), so leaving
+// the page for a while still saves. Beforeunload above stays as a final guard
+// for an actual close.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && state.dirty) saveFile({ silent: true });
 });
 
 /* --------------------------------- Start ---------------------------------- */

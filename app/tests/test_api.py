@@ -208,6 +208,99 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(payload["content"], "deep content")
 
     # ------------------------------------------------------------------ #
+    # Autosave (repeated PUT to the same path)
+    # ------------------------------------------------------------------ #
+
+    def test_repeated_put_same_file_last_write_wins(self):
+        """Autosave PUTs the open note again and again; each save must replace
+        the previous content entirely (no stale merge/append) and report the
+        same path."""
+        self.api("POST", self.file_url("draft.md"))
+        versions = ["first", "second version\nwith a newline", "", "final ✅ ünïcödé"]
+        for content in versions:
+            with self.subTest(content=content):
+                status, payload = self.api(
+                    "PUT", self.file_url("draft.md"), body={"content": content}
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(payload["saved"])
+                self.assertEqual(payload["path"], "draft.md")
+
+                # Both the GET view and the raw bytes on disk reflect the save.
+                status, payload = self.api("GET", self.file_url("draft.md"))
+                self.assertEqual(status, 200)
+                self.assertEqual(payload["content"], content)
+                self.assertEqual(
+                    (self.notes_root / "draft.md").read_text(encoding="utf-8"),
+                    content,
+                )
+
+        # The final save wins and no earlier content survives anywhere.
+        self.assertEqual(
+            (self.notes_root / "draft.md").read_text(encoding="utf-8"),
+            versions[-1],
+        )
+
+    def test_put_creates_nonexistent_file(self):
+        """A save to a path that is not on disk yet must create it with exactly
+        that content (first autosave after a new note / rename)."""
+        target = self.notes_root / "brand new note.md"
+        self.assertFalse(target.exists())
+        content = "# fresh\n\ncreated by autosave 🆕\n"
+        status, payload = self.api(
+            "PUT", self.file_url("brand new note.md"), body={"content": content}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["saved"])
+        self.assertEqual(payload["path"], "brand new note.md")
+        self.assertTrue(target.is_file())
+        self.assertEqual(target.read_text(encoding="utf-8"), content)
+
+        status, payload = self.api("GET", self.file_url("brand new note.md"))
+        self.assertEqual(payload["content"], content)
+
+    def test_put_create_in_missing_nested_folder(self):
+        """PUT must create missing parent folders as part of the save."""
+        target = self.notes_root / "auto" / "nested" / "note.md"
+        self.assertFalse(target.parent.exists())
+        status, payload = self.api(
+            "PUT", self.file_url("auto/nested/note.md"), body={"content": "deep save"}
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["path"], "auto/nested/note.md")
+        self.assertEqual(target.read_text(encoding="utf-8"), "deep save")
+
+    def test_save_leaves_unrelated_sibling_untouched(self):
+        """Saving one note must never touch another file in the same folder,
+        whether or not both are open in the editor."""
+        self.api("POST", self.file_url("open.md"))
+        self.api("POST", self.file_url("other.md"))
+        self.api("PUT", self.file_url("other.md"), body={"content": "other original"})
+        (self.notes_root / "unrelated.md").write_text(
+            "raw unrelated", encoding="utf-8"
+        )
+
+        for content in ("open one", "open two\nchanged", "open three 🎯"):
+            with self.subTest(content=content):
+                status, payload = self.api(
+                    "PUT", self.file_url("open.md"), body={"content": content}
+                )
+                self.assertEqual(status, 200)
+
+        self.assertEqual(
+            (self.notes_root / "other.md").read_text(encoding="utf-8"),
+            "other original",
+        )
+        self.assertEqual(
+            (self.notes_root / "unrelated.md").read_text(encoding="utf-8"),
+            "raw unrelated",
+        )
+        status, payload = self.api("GET", self.file_url("other.md"))
+        self.assertEqual(payload["content"], "other original")
+        status, payload = self.api("GET", self.file_url("open.md"))
+        self.assertEqual(payload["content"], "open three 🎯")
+
+    # ------------------------------------------------------------------ #
     # Create
     # ------------------------------------------------------------------ #
 

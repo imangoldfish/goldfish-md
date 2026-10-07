@@ -49,7 +49,7 @@ The folder is created if it doesn't exist. Everything the app can browse, edit, 
 - **Editor with live preview** — type on the left, rendered markdown (GFM) on the right. Toggle between **Split**, **Edit**, and **Preview** views.
 - **Create / rename / delete** — notes and folders from the sidebar (`New note`, `New folder`, ✎, ✕ on each row). Empty folders delete directly; non-empty ones ask first.
 - **Search** — case-insensitive search over note names and contents while you type (2+ characters); click a result to open it.
-- **Unsaved-change guard** — a "● unsaved" indicator, and a warning before switching notes or closing the tab.
+- **Autosave** — edits are saved to the open note about 1 second after you stop typing. Switching notes asks no questions: pending edits are saved automatically first, and hiding the tab (switching apps) flushes them too. The "● unsaved" indicator shows between a keystroke and the save; closing the tab with unsaved edits still warns.
 
 ### Keyboard shortcuts
 
