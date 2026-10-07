@@ -51,6 +51,12 @@ What happened · decisions + why · unfinished work · concrete next step.
 Keep it to a few lines.
 ```
 
+#### 2026-10-07 — kit README (hiatus note)
+- Added `README.md` to `~/Programming/OpenCode/opencode-memory-kit` — a
+  welcome-back note so a future me can tell at a glance what the kit is,
+  how it's installed (symlink), how to use it, and what improvements are
+  available. Intentionally local/personal — no remote created, per the user.
+
 #### 2026-10-07 — move kit out of this project → its own repo
 - Moved `templates/opencode-memory-kit/` out of this repo to
   `~/Programming/OpenCode/opencode-memory-kit`, now its own git repo
