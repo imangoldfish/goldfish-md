@@ -47,7 +47,7 @@ real search and a clean path to wrapping the app as a desktop app later.
 
 | #  | Milestone             | Outcome |
 |----|-----------------------|---------|
-| M0 | Scaffold              | Vite app + Express API wired end to end ("hello") |
+| M0 | Scaffold              | Python stdlib server + static UI wired end to end ("hello") |
 | M1 | File tree             | Sidebar lists folders + `.md`; `GET /api/tree` |
 | M2 | Read / edit / save    | File open, split editor + live preview, `Ctrl+S` save |
 | M3 | Create / rename / delete | New file, new folder, rename, delete from the tree |

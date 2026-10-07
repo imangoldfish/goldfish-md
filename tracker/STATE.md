@@ -30,7 +30,8 @@ yours — portable, greppable, editable in any other tool.
 
 ## Next up
 
-- [ ] Pick the next feature (see backlog below).
+- [ ] Pick the next feature (see backlog below) — human is drafting V2 ideas;
+      do not pick unilaterally.
 
 ## Ideas backlog (not started)
 
@@ -49,6 +50,14 @@ Format:
 What happened · decisions + why · unfinished work · concrete next step.
 Keep it to a few lines.
 ```
+
+#### 2026-10-07 — state handoff update
+- Picked up "Next up": verified the stale-agent-definition item is already
+  fixed — all three `.opencode/agents/*.md` describe the Python stdlib backend.
+- Fixed the last stale stack reference: `PLAN.md` M0 row said "Vite app +
+  Express API" → now "Python stdlib server + static UI".
+- Left `notes/` user data (untracked test notes) alone, per AGENTS.md.
+- Unfinished: next feature un-chosen — human is drafting V2 ideas (backlog).
 
 #### 2026-10-07 — autosave release + handoff polish
 - Added autosave to the editor (`app/static/app.js`): debounced ~1s save, flush
