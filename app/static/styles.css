@@ -10,6 +10,25 @@
   --accent-soft: #e6efff;
   --code-bg: #f2f3f5;
   --danger: #dc2626;
+
+  /* syntax tokens (preview code blocks) */
+  --tok-keyword: #7c3aed;
+  --tok-string: #087f5b;
+  --tok-comment: #8a8f98;
+  --tok-number: #d97706;
+  --tok-builtin: #0369a1;
+  --tok-func: #0e7490;
+  --tok-tag: #be123c;
+  --tok-attr: #047857;
+  --tok-prop: #0369a1;
+  --tok-hex: #c2410c;
+  --tok-pseudo: #7c3aed;
+  --tok-key: #0369a1;
+  --tok-literal: #d97706;
+  --tok-decorator: #be123c;
+  --tok-flag: #047857;
+  --tok-var: #7c3aed;
+  --tok-punct: #6b7280;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +42,24 @@
     --accent-soft: #1c2b45;
     --code-bg: #1b2027;
     --danger: #f87171;
+
+    --tok-keyword: #c4b5fd;
+    --tok-string: #6ee7b7;
+    --tok-comment: #7a828e;
+    --tok-number: #fcd34d;
+    --tok-builtin: #7dd3fc;
+    --tok-func: #5eead4;
+    --tok-tag: #fda4af;
+    --tok-attr: #86efac;
+    --tok-prop: #7dd3fc;
+    --tok-hex: #fdba74;
+    --tok-pseudo: #c4b5fd;
+    --tok-key: #7dd3fc;
+    --tok-literal: #fcd34d;
+    --tok-decorator: #fda4af;
+    --tok-flag: #86efac;
+    --tok-var: #c4b5fd;
+    --tok-punct: #9aa4b2;
   }
 }
 
@@ -81,6 +118,36 @@ button:disabled { opacity: .45; cursor: default; }
 button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .search { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+
+.status {
+  flex: 1 1 100%;
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Collapsible sidebar ---------- */
+
+body.sidebar-hidden #sidebar { display: none; }
+body.sidebar-hidden #app { grid-template-columns: 1fr; }
+
+/* ---------- Drag & drop import overlay ---------- */
+
+.drop-hint {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+  border: 3px dashed var(--accent);
+  pointer-events: none;
+}
 
 .search input {
   width: 100%;
@@ -176,24 +243,31 @@ button.active { background: var(--accent); border-color: var(--accent); color: #
   resize: none;
   border: none;
   outline: none;
-  padding: 20px;
-  font: 14px/1.6 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  padding: 28px 32px;
+  font: 14px/1.7 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   color: var(--text);
   background: var(--bg);
+  caret-color: var(--accent);
 }
+
+#editor:focus { background: var(--panel); }
 
 #preview {
   overflow: auto;
-  padding: 20px 28px 60px;
+  padding: 28px 32px 60px;
   border-left: 1px solid var(--border);
   background: var(--panel);
+}
+
+#preview > * {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .empty { color: var(--muted); }
 
 /* ---------- Search results ---------- */
-
-.hidden { display: none !important; }
 
 .result {
   padding: 6px 8px;
@@ -238,3 +312,23 @@ button.active { background: var(--accent); border-color: var(--accent); color: #
 .markdown-body img { max-width: 100%; }
 .markdown-body hr { border: none; border-top: 1px solid var(--border); }
 .markdown-body input[type="checkbox"] { margin-right: .4em; }
+
+/* ---------- Syntax tokens (preview code blocks) ---------- */
+
+.markdown-body pre code .tok-keyword { color: var(--tok-keyword); }
+.markdown-body pre code .tok-string { color: var(--tok-string); }
+.markdown-body pre code .tok-comment { color: var(--tok-comment); font-style: italic; }
+.markdown-body pre code .tok-number { color: var(--tok-number); }
+.markdown-body pre code .tok-builtin { color: var(--tok-builtin); }
+.markdown-body pre code .tok-func { color: var(--tok-func); }
+.markdown-body pre code .tok-tag { color: var(--tok-tag); }
+.markdown-body pre code .tok-attr { color: var(--tok-attr); }
+.markdown-body pre code .tok-prop { color: var(--tok-prop); }
+.markdown-body pre code .tok-hex { color: var(--tok-hex); }
+.markdown-body pre code .tok-pseudo { color: var(--tok-pseudo); }
+.markdown-body pre code .tok-key { color: var(--tok-key); }
+.markdown-body pre code .tok-literal { color: var(--tok-literal); }
+.markdown-body pre code .tok-decorator { color: var(--tok-decorator); }
+.markdown-body pre code .tok-flag { color: var(--tok-flag); }
+.markdown-body pre code .tok-var { color: var(--tok-var); }
+.markdown-body pre code .tok-punct { color: var(--tok-punct); }

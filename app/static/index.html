@@ -15,8 +15,11 @@
         <div class="actions">
           <button id="new-file" title="New note">New note</button>
           <button id="new-folder" title="New folder">New folder</button>
+          <button id="open-device" title="Open notes from your device">Import…</button>
           <button id="refresh" title="Refresh tree">⟳</button>
         </div>
+        <input id="file-input" type="file" accept=".md,.markdown,text/markdown" multiple hidden />
+        <div id="status" class="status hidden" role="status" aria-live="polite"></div>
       </header>
 
       <div class="search">
@@ -29,6 +32,7 @@
 
     <main id="main">
       <header id="toolbar">
+        <button id="toggle-sidebar" title="Toggle file tree">☰</button>
         <span id="current-path" class="path">No file open</span>
         <span id="dirty" class="dirty hidden">● unsaved</span>
         <div class="spacer"></div>
@@ -47,8 +51,11 @@
     </main>
   </div>
 
+  <div id="drop-hint" class="drop-hint hidden">Drop <strong>.md</strong> notes here to import them into the vault</div>
+
   <script src="/vendor/marked.min.js"></script>
   <script src="/vendor/purify.min.js"></script>
+  <script src="/highlight.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

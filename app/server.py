@@ -319,6 +319,8 @@ def handle_api(method: str, route: str, query: dict, body: dict):
             raise ApiError(409, "a file or folder with that name already exists")
         if source.is_dir() and destination.is_relative_to(source):
             raise ApiError(400, "cannot move a folder into itself")
+        if source.is_file() and not is_markdown(destination):
+            raise ApiError(400, "renamed files must keep a .md/.markdown extension")
         destination.parent.mkdir(parents=True, exist_ok=True)
         source.rename(destination)
         return {"from": relative(source), "to": relative(destination)}
@@ -375,6 +377,9 @@ class Handler(BaseHTTPRequestHandler):
         if route in ("", "/"):
             route = "/index.html"
         rel = unquote(route).lstrip("/")
+        if "\x00" in rel:  # embedded NUL would make Path.resolve() raise a 500
+            self._error(400, "invalid path")
+            return
         target = (STATIC_DIR / rel).resolve()
         if target != STATIC_DIR and not target.is_relative_to(STATIC_DIR):
             self._error(400, "invalid path")

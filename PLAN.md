@@ -53,6 +53,31 @@ real search and a clean path to wrapping the app as a desktop app later.
 | M3 | Create / rename / delete | New file, new folder, rename, delete from the tree |
 | M4 | Search                | Search box → matches across all notes |
 | M5 | Polish                | Keyboard shortcuts, unsaved guard, styling |
+| M6 | Import & highlight (1.2) | Import `.md` from the device (drag-drop + button), preview syntax highlighting, collapsible sidebar, editor polish |
+
+## Release 1.2 — Milestone M6
+
+Scope decided with the human (2026-10-07). All frontend; the existing file API
+is sufficient (POST create → PUT content), so `server.py` is untouched.
+
+- **Import into the vault**: drag & drop `.md` files anywhere on the window, or
+  use the "Open from device" button. Files are copied into the active folder
+  via the existing API. On a name collision, auto-suffix `name (1).md` (never
+  overwrite an existing note). Non-markdown files are refused with a message.
+- **Syntax highlighting in the preview**: a hand-rolled, dependency-free
+  tokenizer in `app/static/highlight.js` (no new vendor files) highlights
+  fenced code blocks for js/ts, python, html, css, json, bash, sql. Runs on the
+  already-sanitized DOM; output only ever contains escaped text + token spans.
+- **Collapsible sidebar**: a ☰ toggle in the toolbar hides/shows the file
+  tree; preference persisted in `localStorage`.
+- **Editor polish**: JotBird-style layout refinement (typography + spacing) —
+  the split editor + live preview already exist.
+- **`welcome.md`**: rewritten as a walkthrough with an example for every
+  markdown feature, ending with 3 sample notes.
+
+Not in scope (future): importing whole folders via drag-drop, in-editor
+highlighting (textarea → CodeMirror), highlight languages beyond the seven
+above.
 
 ## Agent team
 

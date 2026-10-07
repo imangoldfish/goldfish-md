@@ -356,6 +356,32 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertEqual(status, 404)
 
+    def test_rename_file_to_non_markdown_rejected(self):
+        """Renaming a note to a name without a markdown extension would make it
+        vanish from the tree; the API must refuse it (folders are unrestricted)."""
+        self.api("POST", self.file_url("keep.md"))
+        status, payload = self.api(
+            "POST", "/api/rename", body={"from": "keep.md", "to": "keep.txt"}
+        )
+        self.assertEqual(status, 400)
+        self.assertTrue((self.notes_root / "keep.md").exists())
+        self.assertFalse((self.notes_root / "keep.txt").exists())
+
+        # .markdown is a valid markdown extension.
+        status, payload = self.api(
+            "POST", "/api/rename", body={"from": "keep.md", "to": "keep.markdown"}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue((self.notes_root / "keep.markdown").exists())
+
+        # Folder names are not bound to markdown extensions.
+        self.api("POST", self.folder_url("docs"))
+        status, payload = self.api(
+            "POST", "/api/rename", body={"from": "docs", "to": "notes-archive"}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue((self.notes_root / "notes-archive").is_dir())
+
     def test_rename_folder_changes_disk(self):
         """Renaming a folder moves the whole tree on disk and on read."""
         self.api("POST", self.folder_url("olddir"))

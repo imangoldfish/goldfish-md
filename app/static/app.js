@@ -48,6 +48,10 @@ const els = {
   dirty: document.getElementById("dirty"),
   save: document.getElementById("save"),
   workspace: document.getElementById("workspace"),
+  fileInput: document.getElementById("file-input"),
+  openDevice: document.getElementById("open-device"),
+  status: document.getElementById("status"),
+  toggleSidebar: document.getElementById("toggle-sidebar"),
 };
 
 const state = {
@@ -145,6 +149,7 @@ const AUTOSAVE_DELAY = 1000; // ms of inactivity before an autosave fires
 
 let autosaveTimer = null;
 let switchToken = 0;    // bumps on every openFile() so stale loads are ignored
+let pendingPath = null; // path an openFile() is currently loading (for mutations)
 let saveChain = Promise.resolve();
 let queuedSave = null;  // { path, content, silent, done } of the latest write
 let pendingDelete = new Set(); // paths being deleted; autosaves to them are refused
@@ -172,17 +177,27 @@ function cancelAutosave() {
   autosaveTimer = null;
 }
 
+// A delete/rename of `affected` makes any in-flight openFile() for that path
+// (or anything under it) stale — bump the token so its GET is discarded instead
+// of resurrecting the just-deleted/renamed note on a later keystroke.
+function invalidateOpenUnder(affected) {
+  if (pendingPath && (pendingPath === affected || pendingPath.startsWith(affected + "/"))) {
+    switchToken++;
+  }
+}
+
 async function openFile(path) {
   const token = ++switchToken;
-  if (state.currentPath === path) return;
-  // Autosave (rather than prompt) before leaving the current note.
-  if (state.dirty) {
-    const saved = await saveFile();
-    if (!saved) { scheduleAutosave(); return; } // save failed: stay, re-arm autosave
-    if (token !== switchToken) return;          // a newer switch superseded this one
-    if (state.dirty) { scheduleAutosave(); return; } // typed during the save
-  }
+  pendingPath = path;
   try {
+    if (state.currentPath === path) return;
+    // Autosave (rather than prompt) before leaving the current note.
+    if (state.dirty) {
+      const saved = await saveFile();
+      if (!saved) { scheduleAutosave(); return; } // save failed: stay, re-arm autosave
+      if (token !== switchToken) return;          // a newer switch superseded this one
+      if (state.dirty) { scheduleAutosave(); return; } // typed during the save
+    }
     const data = await api.file(path);
     if (token !== switchToken) return;
     if (state.dirty) return;            // typed while loading; keep this note
@@ -196,6 +211,8 @@ async function openFile(path) {
     els.editor.focus();
   } catch (error) {
     alert(error.message);
+  } finally {
+    if (pendingPath === path) pendingPath = null;
   }
 }
 
@@ -268,6 +285,92 @@ function renderPreview() {
   }
   const html = marked.parse(text, { gfm: true, breaks: false });
   els.preview.innerHTML = DOMPurify.sanitize(html);
+  // Syntax-highlight fenced code blocks. We run on the sanitized DOM: the
+  // tokenizer re-escapes its input and emits only <span class="tok-...">, so
+  // reinserting it cannot introduce markup or scripts.
+  for (const code of els.preview.querySelectorAll("code[class*='language-']")) {
+    const lang = (code.className.match(/language-([\w-]+)/) || [])[1];
+    if (!lang) continue;
+    code.innerHTML = highlightCode(code.textContent, lang);
+  }
+}
+
+/* ------------------------- Import from the device ------------------------- */
+
+let statusTimer = null;
+
+function showStatus(message) {
+  els.status.textContent = message;
+  els.status.classList.remove("hidden");
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => els.status.classList.add("hidden"), 3500);
+}
+
+// Create the note at `path`; if that name is taken, retry as "name (1).md",
+// "name (2).md", … so an import never silently overwrites an existing note.
+async function createUniqueNote(path) {
+  for (let attempt = 0; ; attempt++) {
+    const name = path.slice(path.lastIndexOf("/") + 1);
+    const dot = name.lastIndexOf(".");
+    const stem = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : "";
+    const target = attempt === 0
+      ? path
+      : path.slice(0, path.length - name.length) + `${stem} (${attempt})${ext}`;
+    try {
+      await api.createFile(target);
+      return target;
+    } catch (error) {
+      if (!/already exists/i.test(error.message)) throw error;
+    }
+  }
+}
+
+async function importFile(file, dir) {
+  if (!hasMarkdownExt(file.name)) return 0;
+  if (file.size > 5 * 1024 * 1024) throw new Error(`"${file.name}" is too large to import (max 5 MB)`);
+  const content = await file.text();
+  const path = joinPath(dir, file.name);
+  const created = await createUniqueNote(path);
+  await api.save(created, content);
+  return 1;
+}
+
+async function importFiles(fileList, dir) {
+  const files = Array.from(fileList);
+  const refused = files.filter((f) => !hasMarkdownExt(f.name));
+  let imported = 0;
+  for (const file of files) {
+    if (!hasMarkdownExt(file.name)) continue;
+    try {
+      imported += await importFile(file, dir || state.activeDir);
+    } catch (error) {
+      showStatus(error.message);
+    }
+  }
+  if (imported > 0) {
+    await refreshTree();
+    showStatus(
+      `Imported ${imported} note${imported === 1 ? "" : "s"} into ${state.activeDir || "the vault root"}.`);
+  }
+  if (refused.length) {
+    showStatus(
+      `Skipped ${refused.length} non-markdown file${refused.length === 1 ? "" : "s"} (only .md is imported).`);
+  }
+  if (!imported && !refused.length) showStatus("No markdown files to import.");
+}
+
+/* --------------------------- Collapsible sidebar -------------------------- */
+
+function initSidebar() {
+  const stored = localStorage.getItem("custommd.sidebarHidden");
+  if (stored === "1") document.body.classList.add("sidebar-hidden");
+  els.toggleSidebar.addEventListener("click", () => {
+    document.body.classList.toggle("sidebar-hidden");
+    localStorage.setItem(
+      "custommd.sidebarHidden",
+      document.body.classList.contains("sidebar-hidden") ? "1" : "0");
+  });
 }
 
 /* --------------------------- Create / rename / delete --------------------- */
@@ -308,6 +411,8 @@ async function renameNode(path, type) {
   if (next === null) return;
   const name = next.trim();
   if (!name || name === current) return;
+  if (type === "file" && !hasMarkdownExt(name)) name += ".md"; // keep it listable
+  invalidateOpenUnder(path); // stale openFile() for this path must not apply after the move
   const to = joinPath(parentDir(path), name);
   // Flush the open note (or a note inside the renamed folder) before the move,
   // so a queued autosave cannot recreate the pre-rename path afterwards.
@@ -341,6 +446,7 @@ async function renameNode(path, type) {
 async function deleteNode(path, type) {
   const what = type === "dir" ? "folder" : "note";
   if (!confirm(`Delete ${what} "${path}"?`)) return;
+  invalidateOpenUnder(path); // stale openFile() for this path must not apply after the delete
   const open = state.currentPath;
   if (open && (open === path || open.startsWith(path + "/"))) {
     // Let in-flight writes settle, then refuse new autosaves to the doomed
@@ -449,6 +555,12 @@ els.editor.addEventListener("keydown", (event) => {
     const { selectionStart: start, selectionEnd: end, value } = els.editor;
     els.editor.value = value.slice(0, start) + "  " + value.slice(end);
     els.editor.selectionStart = els.editor.selectionEnd = start + 2;
+    // Programmatic edits don't fire "input": mark the note dirty so a
+    // Tab-only change is autosaved instead of silently dropped on switch.
+    if (!state.dirty) { state.dirty = true; updateDirty(); }
+    scheduleAutosave();
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 120);
   }
 });
 
@@ -463,6 +575,42 @@ document.getElementById("save").addEventListener("click", () => saveFile());
 document.getElementById("new-file").addEventListener("click", newFile);
 document.getElementById("new-folder").addEventListener("click", newFolder);
 document.getElementById("refresh").addEventListener("click", refreshTree);
+
+els.openDevice.addEventListener("click", () => els.fileInput.click());
+els.fileInput.addEventListener("change", async () => {
+  await importFiles(els.fileInput.files, state.activeDir);
+  els.fileInput.value = ""; // allow re-importing the same file
+});
+
+// Drag & drop: any .md file dropped on the window is imported into the vault.
+let dragDepth = 0;
+window.addEventListener("dragenter", (event) => {
+  if (!event.dataTransfer || ![...event.dataTransfer.types].includes("Files")) return;
+  event.preventDefault();
+  dragDepth++;
+  document.getElementById("drop-hint").classList.remove("hidden");
+});
+window.addEventListener("dragleave", (event) => {
+  if (!event.dataTransfer || ![...event.dataTransfer.types].includes("Files")) return;
+  if (--dragDepth <= 0) {
+    dragDepth = 0;
+    document.getElementById("drop-hint").classList.add("hidden");
+  }
+});
+window.addEventListener("dragover", (event) => {
+  if (event.dataTransfer && [...event.dataTransfer.types].includes("Files")) {
+    event.preventDefault(); // required for drop to fire
+  }
+});
+window.addEventListener("drop", (event) => {
+  event.preventDefault();
+  dragDepth = 0;
+  document.getElementById("drop-hint").classList.add("hidden");
+  const files = event.dataTransfer ? event.dataTransfer.files : null;
+  if (files && files.length) importFiles(files, state.activeDir);
+});
+
+initSidebar();
 
 els.tree.addEventListener("click", (event) => {
   const button = event.target.closest(".act");
