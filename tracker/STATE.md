@@ -51,6 +51,20 @@ What happened · decisions + why · unfinished work · concrete next step.
 End with the exact command(s) that verify the claims. Keep it to a few lines.
 ```
 
+#### 2026-10-07 — verified the kit improvements landed
+- Reviewed the implementation against the brief: all 6 changes present.
+  - Protocol text identical between global `~/.config/opencode/AGENTS.md` and
+    `AGENTS.section.md` (`diff` over the section = clean).
+  - Seed template Format block ends with verify-command line; compaction +
+    privacy rules in template and README; `scaffold.sh` emits
+    `tracker/.gitignore`.
+- Committed a cosmetic trailing-newline fix to `AGENTS.section.md` (leftover
+  from the interrupted edit noted below); kit repo is now clean.
+- Unfinished: nothing blocking; V2 feature pick still with the human.
+- Verify: `git -C ~/Programming/OpenCode/opencode-memory-kit status` (clean) ·
+  protocol `diff` global/vs/section (clean) ·
+  `python3 -m unittest discover -s app/tests -t .`
+
 #### 2026-10-07 — applied the improvement brief to the kit
 - Implemented the review's 6 changes in `opencode-memory-kit`:
   verify-before-claiming (grep docs when closing a "Next up" item),
