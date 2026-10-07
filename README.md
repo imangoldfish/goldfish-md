@@ -46,10 +46,14 @@ The folder is created if it doesn't exist. Everything the app can browse, edit, 
 ## Features
 
 - **File tree** — expandable sidebar of folders and `.md`/`.markdown` notes; hidden files and symlinks are skipped.
+- **Collapsible sidebar** — the ☰ toolbar button hides/shows the file tree; your choice is remembered across reloads.
 - **Editor with live preview** — type on the left, rendered markdown (GFM) on the right. Toggle between **Split**, **Edit**, and **Preview** views.
+- **Syntax highlighting** — fenced code blocks in the preview are highlighted by a tiny dependency-free tokenizer (`highlight.js`: js/ts, python, html, css, json, bash, sql) — no vendor libraries.
 - **Create / rename / delete** — notes and folders from the sidebar (`New note`, `New folder`, ✎, ✕ on each row). Renaming a note keeps it a note: the UI appends `.md` when the new name has no markdown extension (folders are renamed as-is). Empty folders delete directly; non-empty ones ask first.
+- **Import from device** — drag `.md` files anywhere on the window, or click **Import…** in the sidebar to pick them; each file is copied into the active folder. On a name collision the copy becomes `name (1).md` — existing notes are never overwritten. Non-markdown and hidden (dot-prefixed) files are skipped with a status message.
 - **Search** — case-insensitive search over note names and contents while you type (2+ characters); click a result to open it.
 - **Autosave** — edits are saved to the open note about 1 second after you stop typing. Switching notes asks no questions: pending edits are saved automatically first, and hiding the tab (switching apps) flushes them too. The "● unsaved" indicator shows between a keystroke and the save; closing the tab with unsaved edits still warns.
+- **Theme toggle** — the ☀️ / 🌙 / 🖥️ toolbar button cycles **Light**, **Dark**, and **System** (auto-follow the OS). Your choice is remembered in localStorage and applied before first paint, so there's no flash of the wrong scheme.
 
 ### Keyboard shortcuts
 

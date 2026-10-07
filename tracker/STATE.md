@@ -5,7 +5,7 @@ The cross-session handoff file. Every session **reads this first** and
 protocol.
 
 **Last updated:** 2026-10-07
-**Status:** v1.1.0 released · M6/v1.2 implemented (`4aa820f`, pushed) — v1.2.0 tag/release is the other agent's; this session's bug fixes are held to be tagged **v1.2.1** (semver patch) after v1.2.0 ships
+**Status:** v1.2.0 released (import, preview highlighting, collapsible sidebar, theme toggle, welcome.md walkthrough) · v1.1.0 released earlier · the "v1.2.1 hold" is moot — those fixes rode inside v1.2.0 (see log entry below)
 
 ## Goal
 
@@ -33,9 +33,11 @@ yours — portable, greppable, editable in any other tool.
 
 ## Next up
 
-- [ ] Other agent ships v1.2.0 → then tag this session's fixes as **v1.2.1**
-      (semver patch: bug fixes only) per `RELEASING.md`. Do not tag before
-      v1.2.0 exists.
+- [x] v1.2.0 tagged + released (this session, commit `03ebc6e` + follow-ups). The
+      other session's "these fixes become v1.2.1" plan is moot: its fixes
+      (autosave resurrection guard, rename-keeps-md, NUL 400 — in `4aa820f` /
+      `eda28c4`) are ancestors of the v1.2.0 tag, so v1.2.0 already includes
+      them. A v1.2.1 tag now would be a no-op — reserve v1.2.1 for NEW fixes.
 - [ ] Pick the next feature (see backlog below) — human is drafting V2 ideas;
       do not pick unilaterally.
 
@@ -56,6 +58,34 @@ Format:
 What happened · decisions + why · unfinished work · concrete next step.
 End with the exact command(s) that verify the claims. Keep it to a few lines.
 ```
+
+#### 2026-10-07 — release v1.2.0 (theme toggle + review fixes)
+- User asked for a theme toggle on top of the 1.2 build: toolbar ☀️/🌙/🖥️
+  button cycles Light/Dark/System, persisted in `localStorage.custommd.theme`,
+  applied pre-paint by an inline `<head>` script (no flash). CSS reworked so
+  `data-theme` overrides `prefers-color-scheme` (light forces light, dark
+  forces dark, unset/system follows the OS). Verified cycle + persistence.
+- Reviewer pass on the follow-up increment: 0 blockers, 0 majors, 3 minors —
+  all fixed: byte-accurate `file.size` check restored *before* `file.text()`;
+  failed-save cleanup now GETs the note and deletes only if still empty (a
+  write whose response was lost is never deleted); dropped folders detected
+  via `webkitGetAsEntry().isDirectory` and refused with their own message
+  (also catches a folder literally named `foo.md`).
+- Browser test caught a real regression the reviewer missed: `importFiles`
+  used `.filter(isImportableName)` which passes the *File object*, not its
+  name string → every import silently refused ("Skipped 1…"). Fixed to
+  `.filter((f) => isImportableName(f.name))`. Re-verified drop-import,
+  `name (1).md` collision, oversize refusal, hidden-name refusal in-browser.
+- highlight.js sticky-regex review came back clean (linear scan, no infinite
+  loop; >64 KB blocks fall back to plain escaped text).
+- Docs agent added 4 README bullets (import, theme toggle, collapsible
+  sidebar, preview highlighting). `welcome.md` image is now an inline SVG.
+- Suite 42/42. Tagged `v1.2.0`, pushed, GitHub release created.
+- Note for the other session: your v1.2.1-hold plan is moot (details in Next
+  up) — v1.2.1 is free for NEW fixes only.
+- Verify: `python3 -m unittest discover -s app/tests -t .` (42 OK) ·
+  `git tag` shows v1.2.0 · `gh release view v1.2.0` · drop a .md in the
+  browser and watch it land in the tree.
 
 #### 2026-10-07 — validation pass: reviewer + tester + docs (v1.2 context)
 - User asked for a fresh reviewer/tester/docs pass. Reviewer found a MAJOR in

@@ -337,6 +337,11 @@ async function createUniqueNote(path) {
 const isImportableName = (name) => hasMarkdownExt(name) && !name.startsWith(".");
 
 async function importFile(file, dir) {
+  // Byte-accurate and before any read: a multi-GB drop is rejected without
+  // being slurped into memory first.
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error(`"${file.name}" is too large to import (max 5 MB)`);
+  }
   const content = await file.text(); // read first: a failed read imports nothing
   if (content.length > 5 * 1024 * 1024) {
     throw new Error(`"${file.name}" is too large to import (max 5 MB)`);
@@ -347,15 +352,22 @@ async function importFile(file, dir) {
     await api.save(created, content);
   } catch (error) {
     // Best-effort cleanup so a failed write does not leave an empty orphan
-    // note (which would fill with "(1)", "(2)" copies on retry).
-    try { await api.removeFile(created); } catch { /* nothing to clean up */ }
+    // note (which would fill with "(1)", "(2)" copies on retry). Only delete
+    // if the note is still empty: a write that landed server-side but whose
+    // response was lost must not be removed — that would lose real data.
+    try {
+      const existing = await api.file(created);
+      if (existing.content === "") await api.removeFile(created);
+    } catch { /* nothing to clean up */ }
     throw error;
   }
   return created;
 }
 
 async function importFiles(fileList, dir) {
-  const files = Array.from(fileList).filter(isImportableName);
+  // NOTE: must be a lambda — filter passes the File object as the element
+  // (first arg), and isImportableName() expects a name string.
+  const files = Array.from(fileList).filter((f) => isImportableName(f.name));
   const refused = Array.from(fileList).length - files.length;
   const targetDir = dir || state.activeDir;
   const imported = [];
@@ -655,7 +667,18 @@ window.addEventListener("dragover", (event) => {
 window.addEventListener("drop", (event) => {
   event.preventDefault();
   document.getElementById("drop-hint").classList.add("hidden");
-  const files = event.dataTransfer ? event.dataTransfer.files : null;
+  const dt = event.dataTransfer;
+  // Chromium exposes a dropped folder as a size-0 File, so `files.length` alone
+  // can't tell a folder drop from a file drop. Check the actual entries first.
+  const hasFolder = !!dt && [...dt.items].some((item) => {
+    const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+    return entry ? entry.isDirectory : false;
+  });
+  if (hasFolder) {
+    showStatus("Folders can't be imported yet — drop .md files instead.");
+    return;
+  }
+  const files = dt ? dt.files : null;
   if (files && files.length) {
     importFiles(files, state.activeDir);
   } else {
