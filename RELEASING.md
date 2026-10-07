@@ -36,7 +36,9 @@ for this repo, just ship the stable version.
 
 2. Update `README.md` if behavior changed (the docs agent can do this).
 3. Sanity-check the change with the reviewer / tester agents (see `PLAN.md`).
-4. Check `git status`. Stage only files that belong in the release — leave junk
+4. Update `tracker/STATE.md` — add one session-log entry and refresh Status /
+   Next up (protocol in `AGENTS.md`). Stage it with the release commit.
+5. Check `git status`. Stage only files that belong in the release — leave junk
    and loose sample notes out.
 
 ## Cut the release
