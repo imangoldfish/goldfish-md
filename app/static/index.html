@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Custom MD</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <header class="sidebar-head">
+        <span class="brand">📝 Custom MD</span>
+        <div class="actions">
+          <button id="new-file" title="New note">New note</button>
+          <button id="new-folder" title="New folder">New folder</button>
+          <button id="refresh" title="Refresh tree">⟳</button>
+        </div>
+      </header>
+
+      <div class="search">
+        <input id="search" type="search" placeholder="Search notes…" autocomplete="off" />
+      </div>
+
+      <nav id="tree" class="tree" aria-label="Notes"></nav>
+      <div id="search-results" class="search-results hidden" aria-label="Search results"></div>
+    </aside>
+
+    <main id="main">
+      <header id="toolbar">
+        <span id="current-path" class="path">No file open</span>
+        <span id="dirty" class="dirty hidden">● unsaved</span>
+        <div class="spacer"></div>
+        <button id="save" disabled>Save</button>
+        <div class="view-toggle" role="group" aria-label="View">
+          <button data-view="split" class="active">Split</button>
+          <button data-view="edit">Edit</button>
+          <button data-view="preview">Preview</button>
+        </div>
+      </header>
+
+      <section id="workspace" data-view="split">
+        <textarea id="editor" spellcheck="false" placeholder="Select a note…"></textarea>
+        <article id="preview" class="markdown-body"></article>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/marked.min.js"></script>
+  <script src="/vendor/purify.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
