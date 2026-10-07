@@ -47,7 +47,7 @@ The folder is created if it doesn't exist. Everything the app can browse, edit, 
 
 - **File tree** — expandable sidebar of folders and `.md`/`.markdown` notes; hidden files and symlinks are skipped.
 - **Editor with live preview** — type on the left, rendered markdown (GFM) on the right. Toggle between **Split**, **Edit**, and **Preview** views.
-- **Create / rename / delete** — notes and folders from the sidebar (`New note`, `New folder`, ✎, ✕ on each row). Empty folders delete directly; non-empty ones ask first.
+- **Create / rename / delete** — notes and folders from the sidebar (`New note`, `New folder`, ✎, ✕ on each row). Renaming a note keeps it a note: the UI appends `.md` when the new name has no markdown extension (folders are renamed as-is). Empty folders delete directly; non-empty ones ask first.
 - **Search** — case-insensitive search over note names and contents while you type (2+ characters); click a result to open it.
 - **Autosave** — edits are saved to the open note about 1 second after you stop typing. Switching notes asks no questions: pending edits are saved automatically first, and hiding the tab (switching apps) flushes them too. The "● unsaved" indicator shows between a keystroke and the save; closing the tab with unsaved edits still warns.
 
@@ -69,6 +69,7 @@ custom MD/
 │   │   ├── index.html     # UI shell
 │   │   ├── app.js         # front-end logic (vanilla JS, no build step)
 │   │   ├── styles.css
+│   │   ├── highlight.js   # tiny dependency-free syntax highlighter
 │   │   └── vendor/        # marked (markdown -> HTML) + DOMPurify (sanitizer)
 │   └── tests/
 │       └── test_api.py    # integration tests for the file API

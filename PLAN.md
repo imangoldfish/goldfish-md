@@ -57,8 +57,10 @@ real search and a clean path to wrapping the app as a desktop app later.
 
 ## Release 1.2 — Milestone M6
 
-Scope decided with the human (2026-10-07). All frontend; the existing file API
-is sufficient (POST create → PUT content), so `server.py` is untouched.
+Scope decided with the human (2026-10-07); implemented in commit `4aa820f`
+(v1.2). Mostly frontend, plus two small `server.py` guards that landed with
+it: `/api/rename` rejects file renames that drop a markdown extension (400),
+and the static route rejects NUL-embedded paths with 400 instead of a 500.
 
 - **Import into the vault**: drag & drop `.md` files anywhere on the window, or
   use the "Open from device" button. Files are copied into the active folder

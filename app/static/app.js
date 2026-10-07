@@ -212,7 +212,9 @@ async function openFile(path) {
   } catch (error) {
     alert(error.message);
   } finally {
-    if (pendingPath === path) pendingPath = null;
+    // Only the latest in-flight open may clear the marker; an older call's
+    // finally must not null it while a newer open of the same path is loading.
+    if (token === switchToken) pendingPath = null;
   }
 }
 
@@ -412,6 +414,7 @@ async function renameNode(path, type) {
   const name = next.trim();
   if (!name || name === current) return;
   if (type === "file" && !hasMarkdownExt(name)) name += ".md"; // keep it listable
+  if (name === current) return; // foo.md → foo becomes a no-op after .md append; don't 409 on self
   invalidateOpenUnder(path); // stale openFile() for this path must not apply after the move
   const to = joinPath(parentDir(path), name);
   // Flush the open note (or a note inside the renamed folder) before the move,

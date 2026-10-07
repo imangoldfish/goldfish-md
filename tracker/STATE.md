@@ -5,7 +5,7 @@ The cross-session handoff file. Every session **reads this first** and
 protocol.
 
 **Last updated:** 2026-10-07
-**Status:** Released (v1.1.0) — active development ongoing
+**Status:** v1.1.0 released · v1.2 (M6) implemented in `4aa820f`, pushed — tag/release decision pending with the human
 
 ## Goal
 
@@ -15,14 +15,17 @@ yours — portable, greppable, editable in any other tool.
 
 ## Current state
 
-- All plan milestones (M0–M5) implemented: file tree, read/edit with live
-  preview, create/rename/delete, search, polish (shortcuts + autosave).
+- All plan milestones (M0–M6) implemented: file tree, read/edit with live
+  preview, create/rename/delete, search, polish (shortcuts + autosave), and
+  v1.2's import (drag-drop + button), preview syntax highlighting
+  (`highlight.js`), collapsible sidebar, `welcome.md` walkthrough.
 - `v1.1.0` tagged and pushed (autosave + `RELEASING.md`). Remote:
-  `github.com/imangoldfish/goldfish-md`.
+  `github.com/imangoldfish/goldfish-md`. v1.2 changes sit in commit `4aa820f`
+  (not yet tagged).
 - `README.md`, `PLAN.md`, `RELEASING.md` are current; agent definitions
   describe the Python stdlib backend accurately.
 - Test suite covers the file API, traversal/symlink rejection, and edge
-  cases. Run it from the repo root:
+  cases (41 tests). Run it from the repo root:
 
   ```sh
   python3 -m unittest discover -s app/tests -t .
@@ -30,6 +33,8 @@ yours — portable, greppable, editable in any other tool.
 
 ## Next up
 
+- [ ] Decide on tagging/releasing v1.2.0 — M6 landed in `4aa820f` (pushed);
+      see `RELEASING.md` for the checklist.
 - [ ] Pick the next feature (see backlog below) — human is drafting V2 ideas;
       do not pick unilaterally.
 
@@ -50,6 +55,36 @@ Format:
 What happened · decisions + why · unfinished work · concrete next step.
 End with the exact command(s) that verify the claims. Keep it to a few lines.
 ```
+
+#### 2026-10-07 — validation pass: reviewer + tester + docs (v1.2 context)
+- User asked for a fresh reviewer/tester/docs pass. Reviewer found a MAJOR in
+  the autosave work: a stale in-flight `openFile()` for a note being
+  deleted/renamed could apply later and resurrect it on the next keystroke.
+  Fixed in `app/static/app.js` with `pendingPath` + `invalidateOpenUnder()`
+  (bumps `switchToken` right after confirm so the doomed path's GET is
+  dropped), plus easy wins: Tab-key edits now mark the note dirty (they were
+  silently lost — programmatic edits don't fire `input`), renames keep the
+  `.md` extension (UI appends it; `server.py` `/api/rename` returns 400 for
+  file targets without a markdown extension; folder renames unrestricted),
+  and the static route rejects NUL bytes with 400 instead of a 500.
+- Tester re-ran the suite and added 7 gap tests (folder-rename guards,
+  recursive delete, search pruning, PUT validation) — 40/40. After my fixes
+  the suite is 41/41.
+- Re-review: no blockers; two minors applied (double-open `finally` guard now
+  keyed on `token === switchToken`; bare-stem rename `foo.md`→`foo` becomes a
+  no-op instead of a confusing 409). Deliberately kept `invalidateOpenUnder`
+  early (right after confirm): moving it later reopens the resurrection
+  window during `await saveChain`; its only cost is dropping an in-flight open
+  when a mutation is later aborted, which is safe (user re-clicks).
+- Docs agent refreshed `README.md` (rename-keeps-markdown bullet;
+  `highlight.js` in the layout list). I corrected `PLAN.md`'s M6 section —
+  it claimed `server.py` was untouched; it isn't (rename guard + NUL 400).
+- Surprise found mid-session: a concurrent session committed `4aa820f`
+  ("1.2: import, highlight, collapsible sidebar, welcome.md") and its
+  `git add -A` swept my then-uncommitted fixes into it. Verified the final
+  tree is correct and pushed. v1.2 is not yet tagged.
+- Verify: `python3 -m unittest discover -s app/tests -t .` (41 OK) ·
+  `git log --oneline -3` (4aa820f on top of 47bddc8).
 
 #### 2026-10-07 — tester: fresh suite validation + gap coverage
 - Ran the existing suite fresh: 33/33 OK against a throwaway temp vault (real
